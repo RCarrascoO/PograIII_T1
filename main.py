@@ -6,7 +6,6 @@ from TDA_Cola import ArrayQueue
 from Exceptions import OwnEmpty
 import json  
 
-
 # Crear una instancia de FastAPI
 app = FastAPI()
 
@@ -23,16 +22,6 @@ def crear_personaje(nombre: str):
     db.commit()
     return {"id": personaje.id}
 
-@app.get("/personajes/{personaje_id}/misiones")
-def listar_misiones(personaje_id: int):
-    db = Session()
-    personaje = db.get(Personaje, personaje_id)
-    if not personaje:
-        raise HTTPException(status_code=404, detail="Personaje no encontrado")
-    queue = personaje.get_misiones_queue()
-    misiones = db.query(Mision).filter(Mision.id.in_(json.loads(queue.to_json()))).all()
-    return {"misiones": [{"id": m.id, "nombre": m.nombre} for m in misiones]}
-
 @app.post("/misiones/")
 def crear_mision(nombre: str, descripcion: str, experiencia: int):
     db = Session()
@@ -40,7 +29,6 @@ def crear_mision(nombre: str, descripcion: str, experiencia: int):
     db.add(mision)
     db.commit()
     return {"id": mision.id}
-
 
 
 @app.post("/personajes/{personaje_id}/misiones/")
@@ -78,3 +66,37 @@ def completar_mision(personaje_id: int):
         return {"mision_completada": mision.nombre}
     except OwnEmpty:
         raise HTTPException(status_code=400, detail="El personaje no tiene misiones pendientes")
+    
+
+@app.get("/personajes/{personaje_id}/misiones")
+def listar_misiones_personaje(personaje_id: int):
+    db = Session()
+    personaje = db.get(Personaje, personaje_id)
+    if not personaje:
+        raise HTTPException(status_code=404, detail="Personaje no encontrado")
+    queue = personaje.get_misiones_queue()
+    misiones = db.query(Mision).filter(Mision.id.in_(json.loads(queue.to_json()))).all()
+    return {"misiones": [{"id": m.id, "nombre": m.nombre} for m in misiones]}
+
+#EXTRA
+
+@app.get("/personajes/{personaje_id}/experiencia")
+def obtener_experiencia(personaje_id: int):
+    db = Session()
+    personaje = db.get(Personaje, personaje_id)
+    if not personaje:
+        raise HTTPException(status_code=404, detail="Personaje no encontrado")
+    return {"experiencia": personaje.experiencia_total}
+
+@app.get("/personajes")
+def listar_personajes():
+    db = Session()
+    personajes = db.query(Personaje).all()
+    return {"personajes": [{"id": p.id, "nombre": p.nombre} for p in personajes]}
+
+@app.get("/misiones")
+def listar_misiones():
+    db = Session()
+    misiones = db.query(Mision).all()
+    return {"misiones": [{"id": m.id, "nombre": m.nombre, "descripcion": m.descripcion, "experiencia": m.experiencia} for m in misiones]}
+
